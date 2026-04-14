@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Smart Lost & Found</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #111;
+            color: white;
+            padding: 40px 20px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        header h1 {
+            font-size: 2.5rem;
+            color: orange;
+            margin-bottom: 10px;
+        }
+        header p {
+            color: #888;
+            font-size: 1rem;
+            margin-bottom: 24px;
+        }
+        .search-box {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .search-box input {
+            width: 400px;
+            padding: 12px 18px;
+            border-radius: 8px;
+            border: 2px solid #333;
+            background: #222;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            transition: border 0.2s;
+        }
+        .search-box input:focus { border-color: orange; }
+        .search-box button {
+            padding: 12px 24px;
+            background: orange;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .search-box button:hover { background: #e06000; }
+        #status {
+            text-align: center;
+            color: #888;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+        .items {
+            max-width: 700px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .item {
+            background: #222;
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        .item img {
+            width: 200px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            flex-shrink: 0;
+        }
+        .item-info { flex: 1; }
+        .description {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #ddd;
+        }
+        .time {
+            color: #888;
+            font-size: 0.75rem;
+            margin-top: 8px;
+        }
+        .claim-btn {
+            margin-top: 14px;
+            padding: 8px 20px;
+            background: #22c55e;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .claim-btn:hover { background: #16a34a; }
+        .no-results {
+            text-align: center;
+            color: #888;
+            margin-top: 60px;
+            font-size: 1.1rem;
+        }
+        mark {
+            background: orange;
+            color: black;
+            border-radius: 3px;
+            padding: 0 2px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>&#128246; Smart Lost &amp; Found</h1>
+        <p>Type what you lost and we'll find it for you</p>
+        <div class="search-box">
+            <input type="text" id="search" placeholder="e.g. keys, water bottle, jacket..." />
+            <button onclick="doSearch()">Search</button>
+        </div>
+        <div id="status"></div>
+    </header>
+    <div class="items" id="items"></div>
+
+    <script>
+        let allItems = [];
+        let lastCount = -1;
+
+        function highlight(text, query) {
+            if (!query) return text;
+            const words = query.trim().split(/\s+/);
+            let result = text;
+            words.forEach(word => {
+                if (word.length < 2) return;
+                const re = new RegExp('(' + word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+                result = result.replace(re, '<mark>$1</mark>');
+            });
+            return result;
+        }
+
+        function claimItem(filename) {
+            if (!confirm('Are you sure you want to claim this item?')) return;
+            // POST /api/claim?filename=xxx  (changed from /claim/filename)
+            fetch('/api/claim?filename=' + encodeURIComponent(filename), { method: 'POST' })
+                .then(r => {
+                    if (r.ok) {
+                        allItems = allItems.filter(i => i.filename !== filename);
+                        lastCount = allItems.length;
+                        doSearch();
+                    }
+                });
+        }
+
+        function doSearch() {
+            const query = document.getElementById('search').value.trim().toLowerCase();
+            const container = document.getElementById('items');
+            const status = document.getElementById('status');
+
+            if (!query) {
+                container.innerHTML = '';
+                status.textContent = '';
+                return;
+            }
+
+            const words = query.split(/\s+/);
+            const filtered = allItems.filter(item =>
+                words.some(word => item.description.toLowerCase().includes(word))
+            );
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="no-results">No items found matching "' + query + '"</div>';
+                status.textContent = '0 results';
+            } else {
+                renderItems(filtered, query);
+                status.textContent = filtered.length + ' item(s) found';
+            }
+        }
+
+        function renderItems(items, query) {
+            const container = document.getElementById('items');
+            container.innerHTML = items.map(item => `
+                <div class="item" id="item-${item.filename}">
+                    <img src="${item.url}" />
+                    <div class="item-info">
+                        <div class="description">${highlight(item.description, query)}</div>
+                        <div class="time">&#128336; Handed in: ${item.time}</div>
+                        <div class="time">&#128205; Location: NOLOP</div>
+                        <button class="claim-btn" onclick="claimItem('${item.filename}')">&#10003; Claim</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function poll() {
+            // GET /api/items  (changed from /items.json)
+            fetch('/api/items')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.length !== lastCount) {
+                        lastCount = data.length;
+                        allItems = data;
+                        const query = document.getElementById('search').value.trim();
+                        if (query) doSearch();
+                    }
+                })
+                .catch(() => {});
+        }
+
+        document.getElementById('search').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') doSearch();
+        });
+
+        poll();
+        setInterval(poll, 5000);
+    </script>
+</body>
+</html>
