@@ -47,7 +47,7 @@ def kv_set_items(items):
 
 def ask_claude(jpeg_bytes):
     payload = json.dumps({
-        "model": "claude-sonnet-4-20250514",
+        "model": "claude-sonnet-4-6",
         "max_tokens": 512,
         "messages": [{
             "role": "user",
