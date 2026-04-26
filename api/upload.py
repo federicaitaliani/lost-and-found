@@ -60,7 +60,7 @@ def ask_claude(jpeg_bytes):
                         "data": base64.b64encode(jpeg_bytes).decode(),
                     },
                 },
-                {"type": "text", "text": "You are analyzing a photo taken inside a lost and found box. An item has been placed inside and photographed from above against a black background. Describe the lost item you see — include color, type of object, any visible brand, text, or distinguishing features. Ignore the black background and focus only on the item. Be specific and concise so a student can identify if it's theirs."},
+                {"type": "text", "text": "You are analyzing a photo taken for a lost and found box. Describe the lost item you see — include color, type of object, any visible brand, text, or distinguishing features. Be specific and concise so a student can identify if it's theirs."},
             ],
         }],
     }).encode()
