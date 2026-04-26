@@ -1,7 +1,7 @@
 from http.server import BaseHTTPRequestHandler
 import os, time, json, base64, urllib.request, urllib.parse
 
-ANTHROPIC_API_KEY     = os.environ["ANTHROPIC_API_KEY"]
+ANTHROPIC_API_KEY     = "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"
 BLOB_READ_WRITE_TOKEN = os.environ["BLOB_READ_WRITE_TOKEN"]
 KV_REST_API_URL       = os.environ["KV_REST_API_URL"]
 KV_REST_API_TOKEN     = os.environ["KV_REST_API_TOKEN"]
